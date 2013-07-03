@@ -134,7 +134,7 @@ ssize_t z_recv_handshake(gnutls_transport_ptr_t transport, void* buf, size_t len
 
   /* Copy the portion of the received message required by gnutls */
   memcpy(buf, (void *)(tr->recv_buf + tr->pos), len);
-  if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Read message from buffer %d\n",len);
+  if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Read message from buffer %ld\n",len);
   tr->pos += len;
   tr->size -= len;
 
@@ -162,7 +162,7 @@ ssize_t z_recv(gnutls_transport_ptr_t transport, void* buf, size_t len)
 
   /* Copy the portion required by gnutls */
   memcpy(buf,(void *)(tr->recv_buf + tr->pos), len);
-  if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Read message from buffer %d\n",len);
+  if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Read message from buffer %ld\n",len);
   tr->pos += len;
   tr->size -= len;
   return len;
