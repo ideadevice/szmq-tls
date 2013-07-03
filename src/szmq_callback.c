@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <zmq.h>
 #include <assert.h>
 #include <errno.h>
 #include <gnutls/gnutls.h>
-#include "szmq.h"
+#include "../include/szmq.h"
 #include "szmq_callback.h"
 
-static int
-generate_dh_params (gnutls_dh_params_t *dh_params)
+int generate_dh_params (gnutls_dh_params_t *dh_params)
 {
   unsigned int bits = 
     gnutls_sec_param_to_pk_bits (GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
@@ -24,8 +24,7 @@ generate_dh_params (gnutls_dh_params_t *dh_params)
 }
 
 /* verify peer's certificate */
-static int
-_verify_certificate_callback (gnutls_session_t session)
+int _verify_certificate_callback (gnutls_session_t session)
 {
   return 0;
   unsigned int status;

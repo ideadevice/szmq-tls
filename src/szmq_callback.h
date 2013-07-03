@@ -3,9 +3,9 @@
 
 #include <gnutls/gnutls.h>
 
-static int generate_dh_params (gnutls_dh_params_t *dh_params);
+int generate_dh_params (gnutls_dh_params_t *dh_params);
 
-static int _verify_certificate_callback (gnutls_session_t session);
+int _verify_certificate_callback (gnutls_session_t session);
 
 ssize_t z_send_handshake(gnutls_transport_ptr_t socket, const void* buf,size_t len );
 

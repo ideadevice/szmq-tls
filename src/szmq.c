@@ -3,7 +3,7 @@
 #include <zmq.h>
 #include <errno.h>
 #include <gnutls/gnutls.h>
-#include "szmq.h"
+#include "../include/szmq.h"
 #include "szmq_callback.h"
 
 
@@ -11,7 +11,7 @@ void szmq_global_init (szmq_context *szmq_ctx)
 {
   gnutls_global_init ();
 
-  szmq_ctx = (szmq_context *) malloc ( sizeof ( szmq_context));
+//  szmq_ctx = (szmq_context *) malloc ( sizeof ( szmq_context));
 
   gnutls_certificate_allocate_credentials (&(szmq_ctx->credentials));
 
@@ -50,7 +50,7 @@ int szmq_set_crl_file (szmq_context *szmq_ctx, const char *crlfile,unsigned int 
 This function initializes the gnutls session, sets up the required callbacks. */
 void szmq_session_init (szmq_context *szmq_ctx, szmq_session  *session, void *socket, unsigned int flags)
 {
-  session = (szmq_session *) malloc (sizeof(szmq_session));
+ // session = (szmq_session *) malloc (sizeof(szmq_session));
   session->transport.pos = 0;
   session->transport.size = 0;
   session->transport.sending = 0;
@@ -84,6 +84,7 @@ void szmq_set_flag(szmq_session *session, unsigned int flag)
 /* perform the TLS handshake */
 int szmq_handshake (szmq_session *session, int timeout)
 {
+  fprintf(stderr, "Initiating handshake\n");
   int ret;
   gnutls_transport_set_push_function ((session->gnutls_session), z_send_handshake);
   gnutls_transport_set_pull_function ((session->gnutls_session), z_recv_handshake);
@@ -113,6 +114,7 @@ int szmq_handshake (szmq_session *session, int timeout)
   gnutls_transport_set_push_function ((session->gnutls_session), z_send);
 
   gnutls_transport_set_pull_function ((session->gnutls_session), z_recv);
+  fprintf(stderr, "handshake done\n");
   return ret;
 }
 
@@ -138,7 +140,7 @@ int szmq_recv(szmq_session *session, void *buf, size_t len)
 void szmq_session_deinit(szmq_session *session)
 {
   gnutls_deinit(session->gnutls_session);
-  free(session);
+//  free(session);
 }
 
 /* destroy szmq context and deinitialize gnutls global structs */
@@ -147,7 +149,7 @@ void szmq_global_deinit(szmq_context *ctx)
   gnutls_certificate_free_credentials(ctx->credentials);
   gnutls_priority_deinit(ctx->priority);
   gnutls_dh_params_deinit(ctx->dh_params);
-  free(ctx);
+//  free(ctx);
   gnutls_global_deinit();
 }
 
