@@ -7,7 +7,8 @@
 #include <zmq.h>
 //#include "../src/szmq.c"
 //#include "../src/szmq_callback.c"
-#include "../include/szmq.h"
+//#include "../include/szmq.h"
+#include <szmq.h>
 #include "session-info.c"
 
 #define KEYFILE "/home/harsh/ssl_key"
