@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <gnutls/gnutls.h>
+#include "szmq.h"
+#include "szmq_callback.h"
 
 static int
 generate_dh_params (gnutls_dh_params_t *dh_params)
@@ -63,16 +65,16 @@ _verify_certificate_callback (gnutls_session_t session)
 }
 
 // Push function to be used during gnutls handshake
-ssize_t z_send_handshake(gnutls_transport_ptr_t socket, const void* buf,size_t len )
+ssize_t z_send_handshake(gnutls_transport_ptr_t transport, const void* buf,size_t len )
 {
-  char c;
-  
+  szmq_transport *tr;
+  tr= (szmq_transport *)transport;
   if(SZMQ_DEBUG_FUNCTION_CALLS) fprintf(stderr,"handshake sending...\n");
-  sending = 1;
+  tr->sending = 1;
 
   // During TLS handshake, we may need to send multiple messages before receiving. 
   // Send them as multipart messages to avoid EFSM on req-rep sockets. Send a delimiter frame later before receiving.
-  int rc = zmq_send(socket, buf, len, ZMQ_SNDMORE);
+  int rc = zmq_send(tr->socket, buf, len, ZMQ_SNDMORE);
   if(rc < 0) perror("send error");
   else if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr,"Message queued %d\n",rc);
   return rc;
@@ -80,21 +82,23 @@ ssize_t z_send_handshake(gnutls_transport_ptr_t socket, const void* buf,size_t l
 
 // Push function to be used after handshake is over.
 // Follows request-reply mode strictly.
-ssize_t z_send(gnutls_transport_ptr_t socket, const void* buf,size_t len )
+ssize_t z_send(gnutls_transport_ptr_t transport, const void* buf,size_t len )
 {
+  szmq_transport *tr;
+  tr= (szmq_transport *)transport;
   if(SZMQ_DEBUG_FUNCTION_CALLS) fprintf(stderr,"sending...\n");
-  int rc = zmq_send((void *)socket,buf, len, zmq_flags);
-  zmq_flags = 0;
+  int rc = zmq_send(tr->socket, buf, len, tr->zmq_flags);
   if(rc < 0) perror("send error");
   else if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr," Send successful %d\n",rc);
   return rc;
 }
 
 // Helper function for reading messages from ZMQ socket
-int z_recv_socket(gnutls_transport_ptr_t socket)
+int z_recv_socket(gnutls_transport_ptr_t transport)
 {
-    int size = zmq_recv(socket, recv_buf, RECV_BUFSIZE, zmq_flags);
-    zmq_flags = 0;
+  szmq_transport *tr;
+  tr= (szmq_transport *)transport;
+  int size = zmq_recv(tr->socket, tr->recv_buf, RECV_BUFSIZE, tr->zmq_flags);
 
     if(size < 0) {
       perror("receive error");
@@ -106,98 +110,103 @@ int z_recv_socket(gnutls_transport_ptr_t socket)
       return -1;
     }
 
-    pos = 0;
+    tr->pos = 0;
 
     if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Received message %d\n",size);
     return size;
 }
 
 // Pull function to be used during gnutls handshake
-ssize_t z_recv_handshake(gnutls_transport_ptr_t socket, void* buf, size_t len)
+ssize_t z_recv_handshake(gnutls_transport_ptr_t transport, void* buf, size_t len)
 {
+  szmq_transport *tr;
+  tr= (szmq_transport *)transport;
   if(SZMQ_DEBUG_FUNCTION_CALLS) fprintf(stderr,"handshake receiving...\n");
 
   // If buffer is empty, read data from ZMQ socket
-  if(size == 0) {
-    size = z_recv_socket(socket);
-    if(size < 0) return -1;
+  if(tr->size == 0) {
+    tr->size = z_recv_socket(tr);
+    if(tr->size < 0) return -1;
   }
 
   // Copy the portion of the received message required by gnutls
-  memcpy(buf, (recv_buf+ pos), len);
+  memcpy(buf, (void *)(tr->recv_buf + tr->pos), len);
   if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Read message from buffer %d\n",len);
-  pos += len;
-  size -= len;
+  tr->pos += len;
+  tr->size -= len;
 
   // If buffer is empty receive the next message part or the delimiter.
-  if(size == 0) {
-    size = z_recv_socket(socket);
-    if(size < 0) return -1;
+  if(tr->size == 0) {
+    tr->size = z_recv_socket(tr);
+    if(tr->size < 0) return -1;
   }
   return len;
 }
 
 // Pull function to be used after handshake is over.
-// Follows request-reply mode strictly.
-ssize_t z_recv(gnutls_transport_ptr_t socket, void* buf, size_t len)
+// Fully synchronous
+ssize_t z_recv(gnutls_transport_ptr_t transport, void* buf, size_t len)
 {
+  szmq_transport *tr;
+  tr= (szmq_transport *)transport;
   if(SZMQ_DEBUG_FUNCTION_CALLS) fprintf(stderr,"receiving...\n");
 
   // If buffer is empty, read data from ZMQ socket
-  if(size == 0 ) {
-    size = z_recv_socket(socket);
-    if(size < 0) return -1;
+  if(tr->size == 0 ) {
+    tr->size = z_recv_socket(tr);
+    if(tr->size < 0) return -1;
   }
 
   // Copy the portion required by gnutls
-  memcpy(buf, (recv_buf + pos), len);
+  memcpy(buf,(void *)(tr->recv_buf + tr->pos), len);
   if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Read message from buffer %d\n",len);
-  pos += len;
-  size -= len;
+  tr->pos += len;
+  tr->size -= len;
   return len;
 }
 
 // Clear server buffer after handshake
-void z_clear_buffer_server(void* socket, int ret)
+void z_clear_buffer_server(szmq_session *session)
 {
   if(SZMQ_DEBUG_FUNCTION_CALLS) fprintf(stderr,"clearing buffer...\n");
-  z_print_state();
-  pos = 0;
-  size = 0;
+  session->transport.pos = 0;
+  session->transport.size = 0;
 
   // Discard any unread messages from a failed handshake
-  zmq_pollitem_t item [] = { {socket, 0, ZMQ_POLLIN, 0} };
+  zmq_pollitem_t item [] = { {session->transport.socket, 0, ZMQ_POLLIN, 0} };
   while(zmq_poll(item, 1, 0) == 1) {
-    zmq_recv(socket, recv_buf, RECV_BUFSIZE, 0);
+    zmq_recv(session->transport.socket, session->transport.recv_buf, RECV_BUFSIZE, 0);
     if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "discarded message\n");
   }
 
   // Send delimiter frame and change the socket state to receive
-    zmq_send(socket, "", 0, ZMQ_DONTWAIT);
-    sending = 0;
+    zmq_send(session->transport.socket, "", 0, ZMQ_DONTWAIT);
+    session->transport.sending = 0;
     if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Queued messages sent\n");
 }
 
 // Poll function
-int z_timeout(gnutls_transport_ptr_t socket, unsigned int time)
+int z_timeout(gnutls_transport_ptr_t transport, unsigned int time)
 {
+  szmq_transport *tr;
+  tr= (szmq_transport *)transport;
   if(SZMQ_DEBUG_FUNCTION_CALLS) fprintf(stderr, "timeout function...\n");
 
   // Do not poll if buffer is not empty 
-  if(size != 0 ) return 1;
+  if(tr->size != 0 ) return 1;
 
   // Send queued messages before polling
-  if(sending) {
-    int a = zmq_send(socket, "", 0, 0);
+  if(tr->sending) {
+    int a = zmq_send(tr->socket, "", 0, 0);
     if(a>=0 && SZMQ_DEBUG_PUSH_PULL) fprintf(stderr, "Queued messages sent\n");
-    sending = 0;
+    tr->sending = 0;
   }
 
   if(SZMQ_DEBUG_PUSH_PULL) fprintf(stderr,"polling...\n");
 
   // Poll the socket for incoming messages
   zmq_pollitem_t item;
-  item.socket = (void *)socket;
+  item.socket = tr->socket;
   item.events = ZMQ_POLLIN;
   int rc = zmq_poll(&item, 1, (long) time);
   if(rc<0 ) return -1; 

@@ -4,10 +4,11 @@
 #include <assert.h>
 #include <errno.h>
 #include <gnutls/gnutls.h>
-#include <szmq_callback.h>
+#include "szmq.h"
+#include "szmq_callback.h"
 
 
-void szmq_global_init (szmq-context *szmq_ctx)
+void szmq_global_init (szmq_context *szmq_ctx)
 {
   gnutls_global_init ();
 
@@ -34,7 +35,7 @@ int szmq_set_key_file (szmq_context *szmq_ctx, const char *certfile,
 		      const char *keyfile, unsigned int flags)
 {
   return gnutls_certificate_set_x509_key_file (szmq_ctx->credentials,
-					    certile, keyfile,  flags);
+					    certfile, keyfile,  flags);
 }
 
 int szmq_set_crl_file (szmq_context *szmq_ctx, const char *crlfile,unsigned int flags)
@@ -46,10 +47,15 @@ int szmq_set_crl_file (szmq_context *szmq_ctx, const char *crlfile,unsigned int 
 void szmq_session_init (szmq_context *szmq_ctx, szmq_session  *session,			      void *socket, unsigned int flags)
 {
   session = (szmq_session *) malloc (sizeof(szmq_session));
-  session->flags = flags;
+  session->transport.pos = 0;
+  session->transport.size = 0;
+  session->transport.sending = 0;
+  session->transport.zmq_flags = 0;
+  session->transport.socket = socket;
+  session->type = flags;
   gnutls_init (&(session->gnutls_session), flags);
 
-  gnutls_transport_set_ptr ((session->gnutls_session), socket);
+  gnutls_transport_set_ptr ((session->gnutls_session), &(session->transport));
 
   gnutls_transport_set_push_function ((session->gnutls_session), z_send);
 
@@ -63,38 +69,35 @@ void szmq_session_init (szmq_context *szmq_ctx, szmq_session  *session,			      
 
 }
 
-void szmq_set_flag(void *session, unsigned int flag)
+void szmq_set_flag(szmq_session *session, unsigned int flag)
 {
-  session->zmq_flags = flag;
+  session->transport.zmq_flags = flag;
 }
 
 int szmq_handshake (szmq_session *session, int timeout)
 {
   int ret;
-  void *socket = gnutls_transport_get_ptr(session->gnutls_session);
   gnutls_transport_set_push_function ((session->gnutls_session), z_send_handshake);
 
   gnutls_transport_set_pull_function ((session->gnutls_session), z_recv_handshake);
   gnutls_handshake_set_timeout(session->gnutls_session, timeout);
-  zmq_pollitem_t item [] = { {socket, 0, ZMQ_POLLIN | ZMQ_POLLOUT, 0} };
+  zmq_pollitem_t item [] = { {session->transport.socket, 0, ZMQ_POLLIN | ZMQ_POLLOUT, 0} };
   do
   {
-    if(session->flags & GNUTLS_SERVER) {
-      if(zmq_poll(item, 1, -1) == 1) ret = gnutls_handshake (session);
-      if(ret != GNUTLS_E_AGAIN && ret != GNUTLS_E_INTERRUPTED) z_clear_buffer_server(socket);
+    if(session->type & GNUTLS_SERVER) {
+      if(zmq_poll(item, 1, -1) == 1) ret = gnutls_handshake (session->gnutls_session);
+      if(ret != GNUTLS_E_AGAIN && ret != GNUTLS_E_INTERRUPTED) z_clear_buffer_server(session);
     }
     else {
-      ret = gnutls_handshake (session);
+      ret = gnutls_handshake (session->gnutls_session);
     }
   } while (ret < 0 && gnutls_error_is_fatal (ret) == 0);
 
   if (ret < 0)
   {
-    if(session->flags & GNUTLS_SERVER) z_clear_buffer_server(socket);
+    if(session->type & GNUTLS_SERVER) z_clear_buffer_server(session);
     fprintf (stderr, "*** Handshake has failed (%s)\n\n",
 	    gnutls_strerror (ret));
-    sleep(1);
-    continue;
   }
   gnutls_transport_set_push_function ((session->gnutls_session), z_send);
 
@@ -106,16 +109,16 @@ int szmq_handshake (szmq_session *session, int timeout)
 int szmq_send(szmq_session *session,void *buf, size_t len)
 {
   int ret;
-  ret = gnutls_record_send(session->gnutls_session,(const void *) buf, len, session->zmq_flags);
-  session->zmq_flags = 0;
+  ret = gnutls_record_send(session->gnutls_session,(const void *) buf, len);
+  session->transport.zmq_flags = 0;
   return ret;
 }
 
 int szmq_recv(szmq_session *session, void *buf, size_t len)
 {
   int ret;
-  ret = gnutls_record_recv(session->gnutls_session, buf, len, session->zmq_flags);
-  session->zmq_flags = 0;
+  ret = gnutls_record_recv(session->gnutls_session, buf, len);
+  session->transport.zmq_flags = 0;
   return ret;
 }
 
