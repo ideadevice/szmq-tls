@@ -94,7 +94,7 @@ ZMQ send and receive functions accept a flag as the last argument which can be g
 
 **szmq_bye**
 
-    int szmq_session_deinit (szmq_session *session);
+    int szmq_bye (szmq_session *session);
     
 This function closes the current connection that was initiated using the *szmq_handshake()* function.
 
@@ -110,7 +110,7 @@ This function frees the SZMQ session along with the GNUTLS session.
 
 ---
 
-**szmq_session_deinit**
+**szmq_global_deinit**
 
     void szmq_global_deinit (szmq_context *context);
     
