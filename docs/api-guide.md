@@ -4,7 +4,7 @@ SZMQ API Reference
 
 szmq_global_init
 ----
-        `void szmq_global_init ( szmq_context *szmq_ctx );`
+    void szmq_global_init ( szmq_context *szmq_ctx );
         
         
 The szmq_global_init() function initializes GNUTLS global parameters and initializes the underlying cryptographic backend. In order to free any resources taken by this call you 
