@@ -42,10 +42,10 @@ int main (void)
   ret = szmq_set_key_file (&s_ctx, CERTFILE, KEYFILE, GNUTLS_X509_FMT_PEM);
 
   /* Create a new ZMQ context */
-  context_server = zmq_ctx_new();
+  context_client = zmq_ctx_new();
   
   /* Create a ZMQ_REQ type socket to make requests */
-  requester = zmq_socket(context_server, ZMQ_REQ);
+  requester = zmq_socket(context_client, ZMQ_REQ);
   
   /* Connect the socket to create outgoing connections from the specified endpoint */
   int rc = zmq_connect (requester, "tcp://localhost:5555");
@@ -71,10 +71,8 @@ int main (void)
 
   /* Destroy the SZMQ session along with the GNUTLS session */
   szmq_bye (&s_sess);
-  
   /* Terminate the connection */
   szmq_session_deinit (&s_sess);
-  
   /* Destroy the SZMQ context and free all GNUTLS globals set in the beginning */
   szmq_global_deinit (&s_ctx);
   
