@@ -60,6 +60,43 @@ This function sets the push, pull funtion and the *timeout* value to be used for
     int szmq_send (szmq_session *session, void *buf, size_t len);
 
 This function sends a message of length *len* stored in *buf* using the *gnutls_record_send()* function (Refer to its [documentation](http://goo.gl/fWgHK))
-**Returns**: GNUTLS_E_SUCCESS on success, otherwise a negative error code(as per GNUTLS conventions).
+**Returns**: The number of bytes sent, or a negative error code. The number of bytes sent might be less than data_size . The maximum number of bytes this function can send in a single call depends on the negotiated maximum record size. 
+
+---
+
+**szmq_recv**
+    
+    int szmq_recv (szmq_session *session, void *buf, size_t len);
+
+This function accepts a message of length *len* using the *gnutls_record_send()* function (Refer to its [documentation](http://goo.gl/fWgHK))
+The data is read into the buffer *buf* 
+**Returns**: The number of bytes received and zero on EOF (for stream connections). A negative error code is returned in case of an error. The number of bytes received might be less than the requested data_size . 
+
+---
+
+**szmq_set_flag**
+    
+    void szmq_set_flag (szmq_session *session, unsigned int flags);
+
+This function can be used to set extra zmq flags as required by the user. 
+ZMQ send and receive functions accept a flag as the last argument which can be given through this function.(See [here](http://goo.gl/HZMKF)(send) and [here](http://goo.gl/dIl3o)(receive)))
+
+---
+
+**szmq_session_deinit**
+
+    void szmq_session_deinit (szmq_session *session);
+    
+This function terminates the current connection that was initiated using the *szmq_handshake()* function.
+
+**Returns**: GNUTLS_E_SUCCESS on success, or an error code as specified by GNUTLS(see [gnutls_bye()](http://goo.gl/oZBJo) for reference)
+
+---
+
+**szmq_bye**
+
+    void szmq_session_deinit (szmq_session *session);
+    
+This function frees the SZMQ session along with the GNUTLS session.
 
 ---
