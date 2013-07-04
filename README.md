@@ -19,8 +19,8 @@ The basic flow of a program using the SZMQ API is as follows:-(See detailed info
 
 *Note that all GNUTLS API functions can be used along with the SZMQ functions.
 
-INSTALL
-=======
+####INSTALL
+
 
 SZMQ requires that libzmq and  libgnutls be installed on the system.
 To compile the package 
