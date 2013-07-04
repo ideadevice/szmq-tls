@@ -29,20 +29,36 @@ int main (void)
   void  *context_server;
   void *requester;
 
+  /* initialize global SZMQ context and global parameters for GNUTLS */
   szmq_global_init(&s_ctx);
+  
+  /* Provide trusted CAs file */
   szmq_set_ca_file (&s_ctx, CAFILE, GNUTLS_X509_FMT_PEM);
+  
+  /* Add the Certificate revocation lists(CRLs) with appropriate flags */
   szmq_set_crl_file (&s_ctx, CRLFILE, GNUTLS_X509_FMT_PEM);
+  
+  /* Provide key pair for the certificate to be used in GNUTLS communication */
   ret = szmq_set_key_file (&s_ctx, CERTFILE, KEYFILE, GNUTLS_X509_FMT_PEM);
 
+  /* Create a new ZMQ context */
   context_server = zmq_ctx_new();
+  
+  /* Create a ZMQ_REQ type socket to make requests */
   requester = zmq_socket(context_server, ZMQ_REQ);
+  
+  /* Connect the socket to create outgoing connections from the specified endpoint */
   int rc = zmq_connect (requester, "tcp://localhost:5555");
   assert (rc == 0);
 
+  /* Initialize a GNUTLS session */
   szmq_session_init (&s_ctx, &s_sess, requester, GNUTLS_CLIENT);
+  
+  /* Perform the handshake with a timeout of 10000 milliseconds*/
   szmq_handshake (&s_sess, 10000);
   print_info(s_sess.gnutls_session);
 
+  /* Send and receive messages from the server in a loop and print the received message */
   for (i=0;i<2;i++)
   {
     szmq_send (&s_sess, MSG, sizeof(MSG));
@@ -53,9 +69,15 @@ int main (void)
 
   }
 
+  /* Destroy the SZMQ session along with the GNUTLS session */
   szmq_bye (&s_sess);
+  
+  /* Terminate the connection */
   szmq_session_deinit (&s_sess);
+  
+  /* Destroy the SZMQ context and free all GNUTLS globals set in the beginning */
   szmq_global_deinit (&s_ctx);
+  
   return 0;
 
 }
