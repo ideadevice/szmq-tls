@@ -54,3 +54,12 @@ This function sets the push, pull funtion and the *timeout* value to be used for
 **Returns**: GNUTLS_E_SUCCESS on success, otherwise a negative error code(as per GNUTLS conventions).
 
 ---
+
+**szmq_send**
+    
+    int szmq_send (szmq_session *session, void *buf, size_t len);
+
+This function sends a message of length *len* stored in *buf* using the *gnutls_record_send()* function (Refer to its [documentation](http://goo.gl/fWgHK))
+**Returns**: GNUTLS_E_SUCCESS on success, otherwise a negative error code(as per GNUTLS conventions).
+
+---
