@@ -30,6 +30,27 @@ The *szmq_session_init()* function is called after the creation of a ZMQ context
     
     int szmq_set_key_file (szmq_context *szmq_ctx, const char *certfile, const char *keyfile, unsigned int flags);
 
-This function sets the key file for the certificate to be used by GNUTLS in the communication.
+This function sets the key file given by *keyfile* for the certificate given by *certfile* to be used by GNUTLS in the communication. It sets a certificate/private key pair in the gnutls_certificate_credentials_t structure.
+For further help see the [GNUTLS documentation](http://goo.gl/jE4Ys) on how to give the flag for specifying the type of certificate.
+
+---
+
+**szmq_set_crl_file**
+    
+    int szmq_set_crl_file (szmq_context *szmq_ctx, const char *crlfile, unsigned int flags);
+
+This function sets the crl file for the certificate to be used by GNUTLS in the communication. It adds the trusted CRLs in order to verify client or server certificates.
+The flags parameter is the type of x509 certificate (PEM or DER), passed as passed in GNUTLS functions.
+See example or refer to the [GNUTLS documentation](http://goo.gl/iVVxw) for the function finally called.
+**Returns**: number of CRLs processed or a negative error code on error.
+
+---
+
+**szmq_handshake**
+    
+    int szmq_handshake(szmq_session *session, int timeout)
+
+This function sets the push, pull funtion and the *timeout* value to be used for the GNUTLS handshake, then does the handshake and initializes the TLS connection.
+**Returns**: GNUTLS_E_SUCCESS on success, otherwise a negative error code(as per GNUTLS conventions).
 
 ---
