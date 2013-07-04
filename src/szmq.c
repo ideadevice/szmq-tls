@@ -3,7 +3,7 @@
 #include <zmq.h>
 #include <errno.h>
 #include <gnutls/gnutls.h>
-#include "../include/szmq.h"
+#include "szmq.h"
 #include "szmq_callback.h"
 
 
