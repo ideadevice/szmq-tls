@@ -16,13 +16,7 @@ The szmq_global_init() function initializes GNUTLS global parameters and initial
 
 This function sets the certificate trust file for the GNUTLS session which is a part of the SZMQ context provided.
 
----
-
-**szmq_session_init**
-    
-    void szmq_session_init (szmq_context *szmq_ctx, szmq_session *session, void *socket, unsigned int flags);
-
-The *szmq_session_init()* function is called after the creation of a ZMQ context and socket. It initializes a GNUTLS session, sets the transport pointer and sets the push and pull function for communication. It also sets the credentials and cipher priority as passed in with the SZMQ context structure *szmq_ctx*.
+**Returns**: number of certificates processed, or a negative error code on error as specified by GNUTLS.(See [here](http://goo.gl/C6zRd) for more reference)
 
 ---
 
@@ -33,6 +27,8 @@ The *szmq_session_init()* function is called after the creation of a ZMQ context
 This function sets the key file given by *keyfile* for the certificate given by *certfile* to be used by GNUTLS in the communication. It sets a certificate/private key pair in the gnutls_certificate_credentials_t structure.
 For further help see the [GNUTLS documentation](http://goo.gl/jE4Ys) on how to give the flag for specifying the type of certificate.
 
+**Returns**: GNUTLS_E_SUCCESS (0) on success, or a negative error code as specified by GNUTLS.(See [here](http://goo.gl/o4hdc) for more reference) 
+
 ---
 
 **szmq_set_crl_file**
@@ -42,15 +38,26 @@ For further help see the [GNUTLS documentation](http://goo.gl/jE4Ys) on how to g
 This function sets the crl file for the certificate to be used by GNUTLS in the communication. It adds the trusted CRLs in order to verify client or server certificates.
 The flags parameter is the type of x509 certificate (PEM or DER), passed as passed in GNUTLS functions.
 See example or refer to the [GNUTLS documentation](http://goo.gl/iVVxw) for the function finally called.
+
 **Returns**: number of CRLs processed or a negative error code on error.
 
 ---
+
+**szmq_session_init**
+    
+    void szmq_session_init (szmq_context *szmq_ctx, szmq_session *session, void *socket, unsigned int flags);
+
+The *szmq_session_init()* function is called after the creation of a ZMQ context and socket. It initializes a GNUTLS session, sets the transport pointer and sets the push and pull function for communication. It also sets the credentials and cipher priority as passed in with the SZMQ context structure *szmq_ctx*.
+
+---
+
 
 **szmq_handshake**
     
     int szmq_handshake(szmq_session *session, int timeout)
 
 This function sets the push, pull funtion and the *timeout* value to be used for the GNUTLS handshake, then does the handshake and initializes the TLS connection.
+
 **Returns**: GNUTLS_E_SUCCESS on success, otherwise a negative error code(as per GNUTLS conventions).
 
 ---
@@ -60,6 +67,7 @@ This function sets the push, pull funtion and the *timeout* value to be used for
     int szmq_send (szmq_session *session, void *buf, size_t len);
 
 This function sends a message of length *len* stored in *buf* using the *gnutls_record_send()* function (Refer to its [documentation](http://goo.gl/fWgHK))
+
 **Returns**: The number of bytes sent, or a negative error code. The number of bytes sent might be less than data_size . The maximum number of bytes this function can send in a single call depends on the negotiated maximum record size. 
 
 ---
@@ -70,6 +78,7 @@ This function sends a message of length *len* stored in *buf* using the *gnutls_
 
 This function accepts a message of length *len* using the *gnutls_record_send()* function (Refer to its [documentation](http://goo.gl/fWgHK))
 The data is read into the buffer *buf* 
+
 **Returns**: The number of bytes received and zero on EOF (for stream connections). A negative error code is returned in case of an error. The number of bytes received might be less than the requested data_size . 
 
 ---
@@ -83,6 +92,14 @@ ZMQ send and receive functions accept a flag as the last argument which can be g
 
 ---
 
+**szmq_bye**
+
+    void szmq_session_deinit (szmq_session *session);
+    
+This function frees the SZMQ session along with the GNUTLS session.
+
+---
+
 **szmq_session_deinit**
 
     void szmq_session_deinit (szmq_session *session);
@@ -93,10 +110,10 @@ This function terminates the current connection that was initiated using the *sz
 
 ---
 
-**szmq_bye**
+**szmq_session_deinit**
 
-    void szmq_session_deinit (szmq_session *session);
+    void szmq_global_deinit (szmq_context *context);
     
-This function frees the SZMQ session along with the GNUTLS session.
+This function destroys the current SZMQ context and also deinitializes the GNUTLS globals set at the start of the program.
 
 ---
