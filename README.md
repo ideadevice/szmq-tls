@@ -18,3 +18,14 @@ The basic flow of a program using the SZMQ API is as follows:-(See detailed info
 - Deinitialize all the global parameters set at the start of the program using szmq_global_deinit().
 
 *Note that all GNUTLS API functions can be used along with the SZMQ functions.
+
+INSTALL
+=======
+
+SZMQ requires that libzmq and  libgnutls be installed on the system.
+To compile the package 
+
+1. 'cd' to the directory containing the package files.
+2. run 'make' to compile the source files.
+3. run 'make install' to install the package.
+4. After installing, run 'make clean' to delete the temporary files created during installation.
