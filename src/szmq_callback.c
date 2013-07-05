@@ -12,6 +12,7 @@ int generate_dh_params (gnutls_dh_params_t *dh_params)
 {
   unsigned int bits = 
     gnutls_sec_param_to_pk_bits (GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
+fprintf(stderr, "dh bits \n");
 
   /* Generate Diffie-Hellman parameters - for use with DHE
    * kx algorithms. When short bit length is used, it might
@@ -26,7 +27,6 @@ int generate_dh_params (gnutls_dh_params_t *dh_params)
 /* verify peer's certificate */
 int _verify_certificate_callback (gnutls_session_t session)
 {
-  return 0;
   unsigned int status;
   int ret, type;
   const char *hostname;
