@@ -7,8 +7,8 @@
 #include <zmq.h>
 //#include "../src/szmq.c"
 //#include "../src/szmq_callback.c"
-//#include "../include/szmq.h"
-#include <szmq.h>
+#include "../include/szmq.h"
+//#include <szmq.h>
 #include "session-info.c"
 
 #define KEYFILE "/home/harsh/ssl_key"
@@ -26,7 +26,7 @@ int main (void)
   szmq_session s_sess;
   szmq_context s_ctx;
   char buffer[MAX_BUF + 1];
-  void  *context_server;
+  void  *context_client;
   void *requester;
 
   /* initialize global SZMQ context and global parameters for GNUTLS */
@@ -53,6 +53,10 @@ int main (void)
 
   /* Initialize a GNUTLS session */
   szmq_session_init (&s_ctx, &s_sess, requester, GNUTLS_CLIENT);
+ 
+  /* To verify if the peer's name matches the one on the provided 
+     certificate, set the name of the host you want to connect to.*/
+  //gnutls_session_set_ptr(s_sess.gnutls_session, "harsh");
   
   /* Perform the handshake with a timeout of 10000 milliseconds*/
   szmq_handshake (&s_sess, 10000);
