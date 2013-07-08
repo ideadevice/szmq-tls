@@ -1,0 +1,12 @@
+To build a python extension of SZMQ the following packages/libraries are required:
+swig, gnutls, zmq
+
+To build the extension follow these steps:
+1. cd to the extensions/python directory in the szmq source directory.
+2. Generate the swig wrapper file by running 
+	swig -python szmq.i
+3. Build the shared object file: 
+	python setup.py build_ext --inplace
+
+This will generate the shared object file _szmq.so in the extensions/python directory
+
